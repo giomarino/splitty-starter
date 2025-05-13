@@ -1,0 +1,21 @@
+{
+  "name": "@splitty-starter/core",
+  "version": "0.0.0",
+  "exports": {
+    "./*": [
+      "./src/*/index.ts",
+      "./src/*.ts"
+    ]
+  },
+  "dependencies": {
+    "@aws-sdk/client-eventbridge": "3.808.0",
+    "@aws-sdk/client-dynamodb": "3.808.0",
+    "@aws-sdk/client-ses": "3.808.0",
+    "@aws-sdk/lib-dynamodb": "3.808.0",
+    "stripe": "18.1.0",
+    "electrodb": "3.4.1",
+    "ulid": "3.0.0"
+  },
+  "devDependencies": {
+  }
+}

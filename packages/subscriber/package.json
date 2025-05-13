@@ -1,0 +1,10 @@
+{
+  "name": "@splitty-starter/subscriber",
+  "version": "0.0.0",
+  "dependencies": {
+    "@splitty-starter/core": "*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.137"
+  }
+}

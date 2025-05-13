@@ -1,0 +1,7 @@
+# Ignore artifacts:
+.build
+coverage
+.sst
+web/*/.angular
+web/*/dist
+call-received.ejs

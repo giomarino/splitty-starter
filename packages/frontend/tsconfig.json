@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "target": "ES2020",
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "strict": true,
+      "outDir": "./dist",
+      "types": ["vite/client"]
+    },
+    "include": ["src/**/*", "sst-env.d.ts"],
+    "exclude": ["node_modules"]
+  }

@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  class="bg-purple-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0" />
+    <title>Splittypay Starter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+      rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#faf5ff',
+                100: '#f3e8ff',
+                200: '#e9d5ff',
+                300: '#d8b4fe',
+                400: '#c084fc',
+                500: '#a855f7',
+                600: '#9333ea',
+                700: '#7e22ce',
+                800: '#6b21a8',
+                900: '#581c87',
+              },
+            },
+            fontFamily: {
+              poppins: ['Poppins', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .dialog-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+      }
+
+      .dialog-backdrop.open {
+        display: grid;
+      }
+
+      .dialog {
+        background: white;
+        border-radius: 0.5rem;
+        width: 90%;
+        max-width: 500px;
+        animation: dialog-slide 0.2s ease-out;
+      }
+
+      @keyframes dialog-slide {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .clickable {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 2px;
+      }
+
+      .json-key {
+        color: #7e22ce;
+        font-weight: 500;
+      }
+
+      .action-button {
+        padding: 0.375rem;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+      }
+
+      .action-button:hover {
+        background-color: #faf5ff;
+      }
+
+      .action-button.delete:hover {
+        background-color: #fee2e2;
+        color: #dc2626;
+      }
+
+      .action-button.pay:hover {
+        background-color: #f0fdf4;
+        color: #16a34a;
+      }
+
+      .actions-cell {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .stripe-element {
+        padding: 10px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+      }
+
+      .stripe-element.focused {
+        box-shadow: 0 0 0 2px #a855f7;
+        border-color: #a855f7;
+      }
+
+      .stripe-element.invalid {
+        border-color: #dc2626;
+      }
+
+      #card-errors {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+      }
+
+      .payment-processing {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .spinner {
+        animation: spin 1s linear infinite;
+        margin-right: 0.5rem;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <nav class="bg-primary-800 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center h-16">
+          <div class="flex-shrink-0">
+            <span class="font-poppins font-semibold text-xl text-white tracking-wide">Splittypay Starter</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-poppins font-bold text-primary-800">Order</h1>
+        <button
+          id="newOrderBtn"
+          class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors duration-200 flex items-center gap-2">
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4" />
+          </svg>
+          Nuovo Ordine
+        </button>
+      </div>
+
+      <div class="overflow-x-auto bg-white rounded-lg shadow-md">
+        <table class="min-w-full table-auto">
+          <thead class="bg-primary-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Order ID</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Status</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Name</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Amount</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Created At</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Updated At</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr>
+              <td
+                colspan="6"
+                class="px-6 py-4 text-center text-primary-600">
+                Caricamento dati...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- Dialog per nuovo ordine -->
+    <div
+      id="newOrderDialog"
+      class="dialog-backdrop">
+      <div class="dialog p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold text-primary-800">Crea Nuovo Ordine</h2>
+          <button
+            id="closeDialog"
+            class="text-gray-400 hover:text-gray-600">
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form
+          id="newOrderForm"
+          class="space-y-4">
+          <div>
+            <label
+              for="name"
+              class="block text-sm font-medium text-primary-700 mb-1"
+              >Nome</label
+            >
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Inserisci il nome dell'ordine" />
+          </div>
+
+          <div>
+            <label
+              for="amount"
+              class="block text-sm font-medium text-primary-700 mb-1"
+              >Importo (€)</label
+            >
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              required
+              min="0"
+              step="0.01"
+              class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="0.00" />
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              id="cancelBtn"
+              class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors duration-200">
+              Annulla
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors duration-200">
+              Crea Ordine
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dialog per i dettagli dell'ordine -->
+    <div
+      id="orderDetailsDialog"
+      class="dialog-backdrop">
+      <div class="dialog p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold text-primary-800">Dettagli Ordine</h2>
+          <button
+            id="closeDetailsDialog"
+            class="text-gray-400 hover:text-gray-600">
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div
+          id="orderDetails"
+          class="font-mono text-sm bg-gray-50 p-4 rounded-lg"></div>
+      </div>
+    </div>
+
+    <!-- Dialog per conferma eliminazione -->
+    <div
+      id="deleteConfirmDialog"
+      class="dialog-backdrop">
+      <div class="dialog p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold text-primary-800">Conferma Eliminazione</h2>
+          <button
+            id="closeDeleteDialog"
+            class="text-gray-400 hover:text-gray-600">
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <p class="text-gray-600 mb-6">
+          Sei sicuro di voler eliminare questo ordine? Questa azione non può essere annullata.
+        </p>
+
+        <div class="flex justify-end gap-3">
+          <button
+            id="cancelDelete"
+            class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors duration-200">
+            Annulla
+          </button>
+          <button
+            id="confirmDelete"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors duration-200">
+            Elimina
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialog per pagamento con Stripe -->
+    <div
+      id="paymentConfirmDialog"
+      class="dialog-backdrop">
+      <div class="dialog p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold text-primary-800">Inserisci i Dati di Pagamento</h2>
+          <button
+            id="closePaymentDialog"
+            class="text-gray-400 hover:text-gray-600">
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form
+          id="payment-form"
+          class="space-y-4">
+          <div class="space-y-2">
+            <label
+              for="card-element"
+              class="block text-sm font-medium text-primary-700">
+              Carta di Credito
+            </label>
+            <div
+              id="card-element"
+              class="stripe-element"></div>
+            <div
+              id="card-errors"
+              role="alert"></div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              id="cancelPayment"
+              class="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors duration-200">
+              Annulla
+            </button>
+            <button
+              type="submit"
+              id="confirmPayment"
+              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors duration-200 flex items-center"
+              disabled>
+              <svg
+                class="spinner hidden w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Paga Ora</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="root"></div>
+
+    <script type="module">
+      async function fetchOrders() {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/order`);
+          if (!response.ok) throw new Error('Errore nel caricamento dei dati');
+          const orders = await response.json();
+
+          const tableBody = document.getElementById('ordersTableBody');
+
+          // Aggiorna l'header della tabella per includere la colonna Azioni
+          const tableHeader = document.querySelector('thead tr');
+          if (!tableHeader.querySelector('th:last-child')?.textContent.includes('Azioni')) {
+            tableHeader.insertAdjacentHTML(
+              'beforeend',
+              `
+              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Azioni</th>
+            `,
+            );
+          }
+
+          tableBody.innerHTML = orders
+            .map(order => {
+              const createdAt = luxon.DateTime.fromMillis(order.created_at)
+                .setZone('Europe/Rome')
+                .toFormat('dd/MM/yyyy HH:mm:ss');
+
+              const updatedAt = luxon.DateTime.fromMillis(order.updated_at)
+                .setZone('Europe/Rome')
+                .toFormat('dd/MM/yyyy HH:mm:ss');
+
+              const amount = (order.amount / 100).toLocaleString('it-IT', {
+                style: 'currency',
+                currency: 'EUR',
+              });
+
+              return `
+                <tr class="border-t border-primary-100 hover:bg-primary-50">
+                  <td class="px-6 py-4 text-sm text-primary-800 font-mono">
+                    <span class="clickable" data-order='${JSON.stringify(order)}'>${order.order_id}</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                      ${
+                        order.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : order.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }">
+                      ${order.status}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-primary-800">${order.name}</td>
+                  <td class="px-6 py-4 text-sm text-primary-800">${amount}</td>
+                  <td class="px-6 py-4 text-sm text-primary-600">${createdAt}</td>
+                  <td class="px-6 py-4 text-sm text-primary-600">${updatedAt}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <div class="actions-cell">
+                      <button 
+                        class="action-button pay" 
+                        data-order-id="${order.order_id}"
+                        data-order='${JSON.stringify(order)}'
+                        title="Effettua pagamento"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" 
+                          />
+                        </svg>
+                      </button>
+                      <button 
+                        class="action-button delete" 
+                        data-order-id="${order.order_id}"
+                        title="Elimina ordine"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            })
+            .join('');
+
+          // Aggiungi event listener per i click sugli order_id
+          tableBody.querySelectorAll('.clickable').forEach(element => {
+            element.addEventListener('click', () => {
+              const order = JSON.parse(element.dataset.order);
+              showOrderDetails(order);
+            });
+          });
+
+          // Aggiungi event listener per i pulsanti di eliminazione
+          tableBody.querySelectorAll('.delete').forEach(button => {
+            button.addEventListener('click', () => {
+              const orderId = button.dataset.orderId;
+              showDeleteConfirmation(orderId);
+            });
+          });
+
+          // Aggiungi event listener per i pulsanti di pagamento
+          tableBody.querySelectorAll('.pay').forEach(button => {
+            button.addEventListener('click', () => {
+              const orderData = JSON.parse(button.dataset.order);
+              showPaymentConfirmation(button.dataset.orderId, orderData);
+            });
+          });
+        } catch (error) {
+          const tableBody = document.getElementById('ordersTableBody');
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" class="px-6 py-4 text-center text-red-600">
+                Errore nel caricamento dei dati: ${error.message}
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      // Gestione della dialog
+      const dialog = document.getElementById('newOrderDialog');
+      const newOrderBtn = document.getElementById('newOrderBtn');
+      const closeDialog = document.getElementById('closeDialog');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const newOrderForm = document.getElementById('newOrderForm');
+
+      function openDialog() {
+        dialog.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeDialogFn() {
+        dialog.classList.remove('open');
+        document.body.style.overflow = '';
+        newOrderForm.reset();
+      }
+
+      newOrderBtn.addEventListener('click', openDialog);
+      closeDialog.addEventListener('click', closeDialogFn);
+      cancelBtn.addEventListener('click', closeDialogFn);
+      dialog.addEventListener('click', e => {
+        if (e.target === dialog) closeDialogFn();
+      });
+
+      // Gestione del form
+      newOrderForm.addEventListener('submit', async e => {
+        e.preventDefault();
+
+        const formData = new FormData(newOrderForm);
+        const amount = Math.round(parseFloat(formData.get('amount')) * 100); // Converti in centesimi
+
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: formData.get('name'),
+              amount: amount,
+            }),
+          });
+
+          if (response.status !== 201) {
+            throw new Error("Errore nella creazione dell'ordine");
+          }
+
+          closeDialogFn();
+          await fetchOrders(); // Aggiorna la tabella
+
+          // Mostra notifica di successo
+          const notification = document.createElement('div');
+          notification.className =
+            'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg';
+          notification.textContent = 'Ordine creato con successo!';
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+        } catch (error) {
+          alert('Errore: ' + error.message);
+        }
+      });
+
+      // Gestione della dialog dei dettagli
+      const detailsDialog = document.getElementById('orderDetailsDialog');
+      const closeDetailsDialog = document.getElementById('closeDetailsDialog');
+      const orderDetails = document.getElementById('orderDetails');
+
+      function formatOrderDetails(order) {
+        const createdAt = luxon.DateTime.fromMillis(order.created_at)
+          .setZone('Europe/Rome')
+          .toFormat('dd/MM/yyyy HH:mm:ss');
+
+        const updatedAt = luxon.DateTime.fromMillis(order.updated_at)
+          .setZone('Europe/Rome')
+          .toFormat('dd/MM/yyyy HH:mm:ss');
+
+        const amount = (order.amount / 100).toLocaleString('it-IT', {
+          style: 'currency',
+          currency: 'EUR',
+        });
+
+        const orderDetails = {
+          ...order,
+          created_at: createdAt,
+          updated_at: updatedAt,
+          amount: amount,
+        };
+
+        return Object.entries(orderDetails)
+          .map(
+            ([key, value]) => `<div class="mb-2">
+            <span class="json-key">${key}:</span> ${value}
+          </div>`,
+          )
+          .join('');
+      }
+
+      function showOrderDetails(order) {
+        orderDetails.innerHTML = formatOrderDetails(order);
+        detailsDialog.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeDetailsDialogFn() {
+        detailsDialog.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      closeDetailsDialog.addEventListener('click', closeDetailsDialogFn);
+      detailsDialog.addEventListener('click', e => {
+        if (e.target === detailsDialog) closeDetailsDialogFn();
+      });
+
+      // Gestione della dialog di eliminazione
+      const deleteDialog = document.getElementById('deleteConfirmDialog');
+      const closeDeleteDialog = document.getElementById('closeDeleteDialog');
+      const cancelDelete = document.getElementById('cancelDelete');
+      const confirmDelete = document.getElementById('confirmDelete');
+      let currentOrderId = null;
+
+      function showDeleteConfirmation(orderId) {
+        currentOrderId = orderId;
+        deleteDialog.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeDeleteDialogFn() {
+        deleteDialog.classList.remove('open');
+        document.body.style.overflow = '';
+        currentOrderId = null;
+      }
+
+      async function deleteOrder() {
+        if (!currentOrderId) return;
+
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/order/${currentOrderId}`, {
+            method: 'DELETE',
+          });
+
+          if (response.status !== 204) {
+            throw new Error("Errore durante l'eliminazione dell'ordine");
+          }
+
+          closeDeleteDialogFn();
+          await fetchOrders(); // Aggiorna la tabella
+
+          // Mostra notifica di successo
+          const notification = document.createElement('div');
+          notification.className =
+            'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg';
+          notification.textContent = 'Ordine eliminato con successo!';
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+        } catch (error) {
+          alert('Errore: ' + error.message);
+        }
+      }
+
+      closeDeleteDialog.addEventListener('click', closeDeleteDialogFn);
+      cancelDelete.addEventListener('click', closeDeleteDialogFn);
+      deleteDialog.addEventListener('click', e => {
+        if (e.target === deleteDialog) closeDeleteDialogFn();
+      });
+      confirmDelete.addEventListener('click', deleteOrder);
+
+      // Inizializzazione Stripe
+      const stripe = Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+      const elements = stripe.elements();
+      const cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#1f2937',
+            '::placeholder': {
+              color: '#6b7280',
+            },
+          },
+        },
+      });
+
+      // Gestione della dialog di pagamento
+      const paymentDialog = document.getElementById('paymentConfirmDialog');
+      const closePaymentDialog = document.getElementById('closePaymentDialog');
+      const cancelPayment = document.getElementById('cancelPayment');
+      const confirmPayment = document.getElementById('confirmPayment');
+      const paymentForm = document.getElementById('payment-form');
+      const spinner = confirmPayment.querySelector('.spinner');
+      let currentPaymentOrderId = null;
+      let currentOrder = null;
+
+      function showPaymentConfirmation(orderId, orderData) {
+        currentOrder = orderData;
+        currentPaymentOrderId = orderId;
+        paymentDialog.classList.add('open');
+        document.body.style.overflow = 'hidden';
+
+        if (!cardElement.isMount) {
+          cardElement.mount('#card-element');
+          cardElement.isMount = true;
+        }
+
+        cardElement.on('change', function (event) {
+          const displayError = document.getElementById('card-errors');
+          const submitButton = document.getElementById('confirmPayment');
+
+          if (event.error) {
+            displayError.textContent = event.error.message;
+            submitButton.disabled = true;
+          } else {
+            displayError.textContent = '';
+            submitButton.disabled = false;
+          }
+
+          // Gestisce lo stato focused
+          const element = document.querySelector('.stripe-element');
+          if (event.focused) {
+            element.classList.add('focused');
+          } else {
+            element.classList.remove('focused');
+          }
+
+          // Gestisce lo stato invalid
+          if (event.error) {
+            element.classList.add('invalid');
+          } else {
+            element.classList.remove('invalid');
+          }
+        });
+      }
+
+      function closePaymentDialogFn() {
+        paymentDialog.classList.remove('open');
+        document.body.style.overflow = '';
+        currentPaymentOrderId = null;
+        currentOrder = null;
+        paymentForm.reset();
+        cardElement.clear();
+      }
+
+      // Gestione del form di pagamento
+      paymentForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        paymentForm.classList.add('payment-processing');
+        spinner.classList.remove('hidden');
+        confirmPayment.disabled = true;
+
+        try {
+          // Crea il payment method
+          const { paymentMethod, error: paymentMethodError } = await stripe.createPaymentMethod({
+            type: 'card',
+            card: cardElement,
+          });
+
+          if (paymentMethodError) {
+            throw new Error(paymentMethodError.message);
+          }
+
+          // Conferma il payment intent usando il client secret
+          const { error: confirmError } = await stripe.confirmCardPayment(
+            currentOrder.stripe_payment_intent_client_secret,
+            {
+              payment_method: paymentMethod.id,
+            },
+          );
+
+          if (confirmError) {
+            throw new Error(confirmError.message);
+          }
+
+          closePaymentDialogFn();
+          await fetchOrders(); // Aggiorna la tabella per riflettere il nuovo stato
+
+          // Mostra notifica di successo
+          const notification = document.createElement('div');
+          notification.className =
+            'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg';
+          notification.textContent = 'Pagamento completato con successo!';
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+        } catch (error) {
+          const errorElement = document.getElementById('card-errors');
+          errorElement.textContent = error.message || 'Si è verificato un errore durante il pagamento. Riprova.';
+        } finally {
+          paymentForm.classList.remove('payment-processing');
+          spinner.classList.add('hidden');
+          confirmPayment.disabled = false;
+        }
+      });
+
+      closePaymentDialog.addEventListener('click', closePaymentDialogFn);
+      cancelPayment.addEventListener('click', closePaymentDialogFn);
+      paymentDialog.addEventListener('click', e => {
+        if (e.target === paymentDialog) closePaymentDialogFn();
+      });
+
+      // Inizializza il caricamento dei dati
+      document.addEventListener('DOMContentLoaded', fetchOrders);
+    </script>
+  </body>
+</html>
