@@ -9,7 +9,7 @@ import { Resource } from 'sst';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(Resource.StripeApiKey.value, {
-  apiVersion: '2022-11-15'
+  apiVersion: '2022-11-15',
 });
 
 export type OrderStatus = 'pending' | 'completed';
@@ -47,6 +47,9 @@ export namespace Order {
         },
         stripe_payment_intent_client_secret: {
           type: 'string',
+        },
+        creation_email_sent_at: {
+          type: 'number',
         },
         created_at: {
           type: 'number',
@@ -105,8 +108,8 @@ export namespace Order {
       currency: 'eur',
       confirm: false,
       metadata: {
-        order_id
-      }
+        order_id,
+      },
     });
 
     const order = await OrderEntity.create({
@@ -115,7 +118,7 @@ export namespace Order {
       stripe_payment_intent_client_secret: stripe_payment_intent.client_secret || undefined,
     }).go();
 
-
+    await publishOrderEvent('order.created', order.data);
 
     return order.data;
   }
@@ -142,8 +145,7 @@ export namespace Order {
     order_id: string;
   };
   export async function pay(_: OrderPayInput): Promise<OrderEntityType | null> {
-    const order = await OrderEntity
-      .patch({ order_id: _.order_id })
+    const order = await OrderEntity.patch({ order_id: _.order_id })
       .set({ status: 'completed' as OrderStatus })
       .go({ response: 'all_new' });
     return order.data;
@@ -157,12 +159,24 @@ export namespace Order {
     return;
   }
 
+  type OrderSendCreationEmailInput = {
+    order_id: string;
+  };
+  export async function sendCreationEmail(_: OrderSendCreationEmailInput): Promise<OrderEntityType> {
+    const order = await OrderEntity
+      .patch(_)
+      .set({ creation_email_sent_at: Date.now() })
+      .go({ response: 'all_new' });
+
+    return order.data;
+  }
 
   // EventBridge
   const client = new EventBridgeClient({});
 
   interface Events {
     'order.succeeded': OrderEntityType;
+    'order.created': OrderEntityType;
   }
   export type OrderEventTypes = keyof Events;
 

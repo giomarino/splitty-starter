@@ -1,6 +1,18 @@
+import { Order } from "@splitty-starter/core/order";
 import { Handler } from "aws-lambda";
 
 export const handler: Handler = async (event) => {
-  console.info(event);
-  return;
+  let order = event.detail as Order.OrderEntityType;
+  
+  switch(event.source) {
+    case 'order.created': {
+      order = await Order.sendCreationEmail({ order_id: order.order_id });
+      break;
+    }
+    default: {
+      console.info(`Unhandled order event type: ${event.type}`);
+    }  
+  }
+
+  return order;
 };

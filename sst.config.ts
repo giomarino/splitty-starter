@@ -8,13 +8,15 @@ export default $config({
       home: "aws",
       providers: {
         aws: {
-          profile: input?.stage
+          profile: input?.stage + '-splittypay'
         }
       }
     };
   },
   async run() {
     const infra = await import("./infra");
+
+
 
     return {
       api: infra.api.url,

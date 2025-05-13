@@ -7,8 +7,11 @@ export const api = new sst.aws.ApiGatewayV2('Api', {
   transform: {
     route: {
       handler: {
-        link: [table, ...secret_collection],
+        link: [table, order_event_bus,...secret_collection],
         permissions: [{ actions: ['*'], resources: ['*'] }],
+        tags: {
+          'lumigo:auto-trace': 'true',
+        }
       },
     },
   },

@@ -632,6 +632,12 @@
           .setZone('Europe/Rome')
           .toFormat('dd/MM/yyyy HH:mm:ss');
 
+        const emailSentAt = order.creation_email_sent_at
+          ? luxon.DateTime.fromMillis(order.creation_email_sent_at)
+              .setZone('Europe/Rome')
+              .toFormat('dd/MM/yyyy HH:mm:ss')
+          : 'Non inviata';
+
         const amount = (order.amount / 100).toLocaleString('it-IT', {
           style: 'currency',
           currency: 'EUR',
@@ -641,6 +647,7 @@
           ...order,
           created_at: createdAt,
           updated_at: updatedAt,
+          creation_email_sent_at: emailSentAt,
           amount: amount,
         };
 
