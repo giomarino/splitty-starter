@@ -6,7 +6,12 @@ export const handler: Handler = async (event) => {
   
   switch(event.source) {
     case 'order.created': {
-      order = await Order.sendCreationEmail({ order_id: order.order_id });
+      order = await Order.sendCreationEmail({
+        order_id: order.order_id,
+        name: order.name,
+        amount: order.amount,
+        buyer_email: order.buyer_email
+      });
       break;
     }
     default: {

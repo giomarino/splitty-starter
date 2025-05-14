@@ -14,8 +14,10 @@
     "@aws-sdk/lib-dynamodb": "3.808.0",
     "stripe": "18.1.0",
     "electrodb": "3.4.1",
+    "ejs": "3.1.10",
     "ulid": "3.0.0"
   },
   "devDependencies": {
+    "@types/ejs": "3.1.5"
   }
 }

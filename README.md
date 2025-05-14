@@ -67,11 +67,11 @@ bun i
 bun run sst secret set StripeApiKey <your stripe private key>
 
 
-🧪 Avvio in modalità sviluppo con debugger live
+# 🧪 Avvio in modalità sviluppo con debugger live
 bun run sst dev --stage <your stage>
 Questo comando avvia un tunnel locale che collega direttamente le Lambda al tuo ambiente di sviluppo.
 
-🚀 Deploy su AWS
+# 🚀 Deploy su AWS
 bun run sst deploy --stage <your stage>
 
 ```
@@ -88,3 +88,6 @@ Esegui una **fork del progetto**, lavora sulla tua repo personale e prova a comp
 
 3. ⏳ **Cancellazione automatica dopo 24h**  
    Implementa un meccanismo per **cancellare automaticamente** gli ordini non completati (`PENDING`) dopo **24 ore dalla loro creazione**.
+   
+4. 🧱 **Rifacimento dell'applicazione frontend con Angular**  
+   Ricrea l’interfaccia dell’app di gestione ordini utilizzando **Angular**, mantenendo l’interazione con le API esistenti. 

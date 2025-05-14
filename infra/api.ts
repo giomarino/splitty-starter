@@ -9,6 +9,9 @@ export const api = new sst.aws.ApiGatewayV2('Api', {
       handler: {
         link: [table, order_event_bus,...secret_collection],
         permissions: [{ actions: ['*'], resources: ['*'] }],
+        environment: {
+          LUMIGO_DEBUG: 'true',
+        },
         tags: {
           'lumigo:auto-trace': 'true',
         }

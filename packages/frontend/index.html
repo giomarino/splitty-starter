@@ -183,16 +183,17 @@
       </div>
 
       <div class="overflow-x-auto bg-white rounded-lg shadow-md">
-        <table class="min-w-full table-auto">
+        <table class="w-full table-auto">
           <thead class="bg-primary-100">
             <tr>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Order ID</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Status</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Name</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Amount</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Created At</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Updated At</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Azioni</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[15%]">Order ID</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[10%]">Status</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[15%]">Name</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[20%]">Email</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[10%]">Amount</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[12%]">Created At</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[12%]">Updated At</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[6%]">Azioni</th>
             </tr>
           </thead>
           <tbody id="ordersTableBody">
@@ -248,6 +249,21 @@
               required
               class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Inserisci il nome dell'ordine" />
+          </div>
+
+          <div>
+            <label
+              for="buyer_email"
+              class="block text-sm font-medium text-primary-700 mb-1"
+              >Email</label
+            >
+            <input
+              type="email"
+              id="buyer_email"
+              name="buyer_email"
+              required
+              class="w-full px-3 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Inserisci l'email dell'acquirente" />
           </div>
 
           <div>
@@ -444,7 +460,7 @@
             tableHeader.insertAdjacentHTML(
               'beforeend',
               `
-              <th class="px-6 py-3 text-left text-sm font-semibold text-primary-800">Azioni</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold text-primary-800 w-[6%]">Azioni</th>
             `,
             );
           }
@@ -466,10 +482,10 @@
 
               return `
                 <tr class="border-t border-primary-100 hover:bg-primary-50">
-                  <td class="px-6 py-4 text-sm text-primary-800 font-mono">
+                  <td class="px-4 py-4 text-sm text-primary-800 font-mono">
                     <span class="clickable" data-order='${JSON.stringify(order)}'>${order.order_id}</span>
                   </td>
-                  <td class="px-6 py-4">
+                  <td class="px-4 py-4">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                       ${
                         order.status === 'pending'
@@ -481,11 +497,12 @@
                       ${order.status}
                     </span>
                   </td>
-                  <td class="px-6 py-4 text-sm text-primary-800">${order.name}</td>
-                  <td class="px-6 py-4 text-sm text-primary-800">${amount}</td>
-                  <td class="px-6 py-4 text-sm text-primary-600">${createdAt}</td>
-                  <td class="px-6 py-4 text-sm text-primary-600">${updatedAt}</td>
-                  <td class="px-6 py-4 text-sm">
+                  <td class="px-4 py-4 text-sm text-primary-800">${order.name}</td>
+                  <td class="px-4 py-4 text-sm text-primary-800">${order.buyer_email || '-'}</td>
+                  <td class="px-4 py-4 text-sm text-primary-800">${amount}</td>
+                  <td class="px-4 py-4 text-sm text-primary-600">${createdAt}</td>
+                  <td class="px-4 py-4 text-sm text-primary-600">${updatedAt}</td>
+                  <td class="px-4 py-4 text-sm">
                     <div class="actions-cell">
                       <button 
                         class="action-button pay" 
@@ -592,6 +609,7 @@
             },
             body: JSON.stringify({
               name: formData.get('name'),
+              buyer_email: formData.get('buyer_email'),
               amount: amount,
             }),
           });

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ordine Creato</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f4ff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #7c3aed;
+      margin: 0;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #4c1d95;
+      margin-bottom: 20px;
+    }
+    .content {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Splitty Starter</h1>
+    </div>
+    <div class="title">Ordine Creato</div>
+    <div class="content">
+      Il tuo ordine "<%= name %>" di ammontare "<%= amount %>" è stato creato.
+    </div>
+    <div class="footer">
+      © <%= new Date().getFullYear() %> Splitty Starter. Tutti i diritti riservati.
+    </div>
+  </div>
+</body>
+</html>

@@ -8,6 +8,13 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { Resource } from 'sst';
 import Stripe from 'stripe';
 
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { renderFile } from 'ejs';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const ses = new SESClient({});
+
 const stripe = new Stripe(Resource.StripeApiKey.value, {
   apiVersion: '2022-11-15',
 });
@@ -50,6 +57,10 @@ export namespace Order {
         },
         creation_email_sent_at: {
           type: 'number',
+        },
+        buyer_email: {
+          type: 'string',
+          required: true,
         },
         created_at: {
           type: 'number',
@@ -99,6 +110,7 @@ export namespace Order {
   type OrderCreateInput = {
     name: OrderStatus;
     amount: number;
+    buyer_email: string;
   };
   export async function create(_: OrderCreateInput): Promise<OrderEntityType> {
     const order_id = `or_${ulid().toLowerCase()}`;
@@ -116,6 +128,7 @@ export namespace Order {
       ..._,
       order_id,
       stripe_payment_intent_client_secret: stripe_payment_intent.client_secret || undefined,
+      buyer_email: _.buyer_email,
     }).go();
 
     await publishOrderEvent('order.created', order.data);
@@ -161,10 +174,37 @@ export namespace Order {
 
   type OrderSendCreationEmailInput = {
     order_id: string;
+    name: string;
+    amount: number;
+    buyer_email: string;
   };
   export async function sendCreationEmail(_: OrderSendCreationEmailInput): Promise<OrderEntityType> {
-    const order = await OrderEntity
-      .patch(_)
+    const { order_id, ...atts } = _;
+
+    const template_path = join(process.cwd(), 'packages/email/ejs/order-created.ejs');
+
+    const html = await renderFile(template_path, atts);
+
+    await ses.send(
+      new SendEmailCommand({
+        Source: Resource.NoReplyEmail.sender,
+        Destination: {
+          ToAddresses: [_.buyer_email],
+        },
+        Message: {
+          Subject: {
+            Data: 'Splitty Starter - Ordine Creato',
+          },
+          Body: {
+            Html: {
+              Data: html,
+            },
+          },
+        },
+      }),
+    );
+
+    const order = await OrderEntity.patch({ order_id })
       .set({ creation_email_sent_at: Date.now() })
       .go({ response: 'all_new' });
 
