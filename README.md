@@ -26,6 +26,16 @@ Il progetto è basato interamente su un’architettura **serverless** in **AWS**
 - **DynamoDB** (Single Table Design) – per la gestione dello stato e dei dati
   - Gestita tramite [**ElectroDB**](https://github.com/tywalch/electrodb), una libreria per modellare e interagire con DynamoDB in maniera dichiarativa
 
+- **EventBridge** – per la gestione degli eventi asincroni
+- **SES** – per l'invio di email di notifica
+- **S3** – per lo storage statico del frontend
+
+### 🔄 Flusso di Creazione Ordine
+
+Di seguito viene mostrato il flusso di creazione di un ordine, dalla navigazione dell'app fino al click del button di creazione ordine:
+
+![Schema del flusso di creazione ordine](schema.png)
+
 ---
 
 ## 📁 Struttura della Monorepo
