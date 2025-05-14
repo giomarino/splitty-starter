@@ -13,10 +13,9 @@ export default $config({
       }
     };
   },
+  
   async run() {
     const infra = await import("./infra");
-
-
 
     return {
       api: infra.api.url,
